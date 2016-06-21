@@ -47,6 +47,8 @@ void ProcessOneChunk(const vector<pair<string,ppath>>& utterances,
     size_t numOutFrames = 0;
     size_t st = 0;
     size_t en = 0; 
+    float avgSpeechConf = 0;
+    size_t speechFrame = 0;
 
     for (auto& oneutt : utterances)
     {
@@ -73,13 +75,15 @@ void ProcessOneChunk(const vector<pair<string,ppath>>& utterances,
             }
             for (int f = stFrame; f <= enFrame; f++)
             {
+                avgSpeechConf += confScore;
+                speechFrame++;
                 res[f][0] = confScore; 
                 res[f][1] = isCorrect ? (float)1.0 : (float)0.0;
             }
             preEnd = enFrame;
         }
         for (int f = preEnd + 1; f < numframes; f++)
-        {
+        {            
             res[f][0] = silConf; res[f][1] = 1.0f;
         }
 
@@ -105,11 +109,13 @@ void ProcessOneChunk(const vector<pair<string,ppath>>& utterances,
         outpath.setAsArchivePath(wstring(path), msra::strfun::utf16(confChunkName), st, en);
         confRecFiles.push_back(outpath);
         
-        st += numOutFrames;
+        st += numframes;
     }
     writer.close(numOutFrames);
     if (pConfLabWriter)
         pConfLabWriter->close(numOutFrames);
+
+    fprintf(stderr, "\t\tTotal number of frame=%d; speech frame=%d; Average speech frame conf=%f\n", numOutFrames, speechFrame, avgSpeechConf/speechFrame);
 }
 void ProcessConfChunks(SCPFileParser& scpParser,
                     TSVFileParser& tsvParser,
@@ -128,6 +134,7 @@ void ProcessConfChunks(SCPFileParser& scpParser,
     vector<ppath>   confLabelFiles;
     vector<ppath>   feaFiles;
     size_t currentChunkId = 0;
+    size_t lengthMismatch = 0;
     float elapsed_seconds_so_far = 0;
     auto ProcessOneChunkWrapper = [&oneChunk, &currentChunkId, &tsvParser, &confRecoFiles, &confLabelFiles, &frameInOneChunk, &elapsed_seconds_so_far,
         confChunkDir, labelChunkDir, createLabelChunk, silConf]()
@@ -153,6 +160,11 @@ void ProcessConfChunks(SCPFileParser& scpParser,
         ppath path = scpParser.QueryUtterance(name, found);
         if (found)
         {
+            if (path.numframes() < tsvParser.LastFrameIndex(name))
+            {
+                lengthMismatch++;
+                continue;
+            }
             frameInOneChunk += path.numframes();
             oneChunk.push_back(make_pair(name, path));
             feaFiles.push_back(path);
@@ -165,6 +177,7 @@ void ProcessConfChunks(SCPFileParser& scpParser,
     /* process remaining one */
     ProcessOneChunkWrapper();
 
+    fprintf(stderr, "%d files suffer length mismatch problem\n", lengthMismatch);
 
     string confRecSCP = scpFileBase + ".conf.rec.scp";
     string confLabSCP = scpFileBase + ".conf.lab.scp"; 

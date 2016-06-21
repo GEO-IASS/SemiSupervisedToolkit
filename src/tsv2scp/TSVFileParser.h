@@ -85,6 +85,10 @@ public:
         return true;
     }
 
+    int LastFrameIndex()
+    {
+        return back().GetEndFrame();
+    }
 private:
     vector<string> split(const string& input, const string& regex)
     {
@@ -147,7 +151,7 @@ public:
                     m_confScoresPerUtterances.insert(make_pair(uttName, utt));
                     if (lineIdx % 1000 == 0)
                     {
-                        fprintf(stderr, "parsing tsv file %s, %d line parsed, %d failed to parse\n", fileName.c_str(), lineIdx+1, failed2Parse); 
+                        fprintf(stderr, "parsing tsv file %s, %d line parsed, %d failed to parse\r", fileName.c_str(), lineIdx+1, failed2Parse); 
                     }
                 }
                 else
@@ -157,6 +161,7 @@ public:
             }
             lineIdx++;
         }
+        fprintf(stderr, "\n\n");
         return true;
     }
     size_t NumUtterances() const{
@@ -177,5 +182,10 @@ public:
         return m_confScoresPerUtterances[name];
     }
 
+    int LastFrameIndex(string name)
+    {
+        assert(m_confScoresPerUtterances.find(name) != m_confScoresPerUtterances.end());
+        return m_confScoresPerUtterances[name].LastFrameIndex();
+    }
 
 };

@@ -43,10 +43,10 @@ public:
             }
             if (lineIdx % 5000 == 0)
             {
-                fprintf(stderr, "Loading %d entry in %s\n", lineIdx, fileName.c_str());
+                fprintf(stderr, "Loading %d entry in %s\r", lineIdx, fileName.c_str());
             }
         }
-        fprintf(stderr, "Loading %d lines from %s -- %d uuid conflicted , %d loaded\n", lineIdx, fileName.c_str(), conflicted, m_fileRecord.size());
+        fprintf(stderr, "\nLoading %d lines from %s -- %d uuid conflicted , %d loaded\n", lineIdx, fileName.c_str(), conflicted, m_fileRecord.size());
         return true;
     }
 
