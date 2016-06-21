@@ -38,6 +38,10 @@ public:
     {
         return (int)((_st + _dur) * 100)-1;
     }
+    int GetNumFrames()
+    {
+        return (GetEndFrame() - GetStartFrame() + 1);
+    }
     float GetConfScore()
     {
         return _confScore;
@@ -89,6 +93,7 @@ public:
     {
         return back().GetEndFrame();
     }
+
 private:
     vector<string> split(const string& input, const string& regex)
     {
@@ -162,6 +167,8 @@ public:
             lineIdx++;
         }
         fprintf(stderr, "\n\n");
+        if (m_confScoresPerUtterances.size() == 0)
+            return false;
         return true;
     }
     size_t NumUtterances() const{
@@ -187,5 +194,44 @@ public:
         assert(m_confScoresPerUtterances.find(name) != m_confScoresPerUtterances.end());
         return m_confScoresPerUtterances[name].LastFrameIndex();
     }
+
+    map<int, float> SpeechFrameConfHistogram(int numBins, size_t& totalFrames)
+    {
+        assert(numBins > 1);
+        float binWidth = 1.0f / (numBins - 1);
+        auto score2id = [&binWidth, &numBins](float score)->int
+        {
+            int id = int(score / binWidth); 
+            if (id < 0)
+                id = 0;
+            if (id > numBins)
+                id = numBins - 1;
+            return id;
+        };
+        map<int, float> hisogram;
+
+        totalFrames = 0; 
+        for (auto& x : m_confScoresPerUtterances)
+        {
+            ConfSegments utt = x.second;
+            for (size_t segId = 0; segId < utt.size(); segId++)
+            {
+                ConfSegment seg = utt[segId];
+                int numFrames = seg.GetNumFrames();
+                int binId = score2id(seg.GetConfScore());
+                if (hisogram.find(binId) == hisogram.end())
+                    hisogram[binId] = 0;
+                hisogram[binId] += numFrames;
+                totalFrames += numFrames;
+            }
+        }
+
+        for (auto& x : hisogram)
+        {
+            x.second /= (float)totalFrames;
+        }
+        return hisogram;
+    }
+
 
 };
